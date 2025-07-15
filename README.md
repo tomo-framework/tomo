@@ -102,12 +102,12 @@ response = await orchestrator.run("Calculate the weather in Tokyo and convert to
 - Comprehensive test suite and documentation
 
 **LLM Adapters:**
-- OpenAI (GPT-4, GPT-3.5-turbo)
-- Anthropic (Claude models)
-- Google Gemini
-- Azure OpenAI
-- Cohere (Command R+)
-- Mistral AI
+- **OpenAI** - GPT-4, GPT-3.5-turbo function calling
+- **Anthropic** - Claude models with tool use
+- **Google Gemini** - Gemini Pro and Advanced tool calling
+- **Azure OpenAI** - Azure-hosted OpenAI models
+- **Cohere** - Command R+ tool integration
+- **Mistral AI** - Mistral models with function calling
 
 **Orchestration:**
 - LLM-based intelligent tool selection
@@ -124,10 +124,17 @@ response = await orchestrator.run("Calculate the weather in Tokyo and convert to
 
 ### 🔄 In Development
 
-- Workflow engine for complex multi-step processes
-- API server for external integrations
-- Plugin system for custom extensions
-- Web dashboard for tool inspection
+- **Workflow Engine** - Complex multi-step process orchestration
+- **API Server** - RESTful interface for external integrations
+- **Plugin System** - Extensible architecture for custom extensions
+- **Web Dashboard** - Visual tool inspection and monitoring interface
+
+### 📋 Planned Features
+
+- **Security Layer** - Access control and authentication
+- **Monitoring & Analytics** - Execution metrics and performance tracking
+- **Persistent Storage** - State management and workflow persistence
+- **Advanced Patterns** - Conditional workflows and error recovery
 
 ---
 
@@ -432,6 +439,78 @@ uv run ruff check . --fix
 # Type checking
 uv run mypy tomo/
 ```
+
+---
+
+## 🤝 Contributing
+
+We welcome contributions from the community! Here's how you can help:
+
+### Getting Started
+
+1. **Fork the repository** and clone it locally
+2. **Set up the development environment**:
+   ```bash
+   git clone https://github.com/your-username/tomo.git
+   cd tomo
+   uv sync --extra dev
+   uv shell
+   ```
+3. **Create a feature branch**:
+   ```bash
+   git checkout -b feature/your-feature-name
+   ```
+
+### Development Guidelines
+
+- **Code Style**: Follow PEP 8 and use Black for formatting
+- **Type Hints**: Include type annotations for all functions and methods
+- **Tests**: Add tests for new features and ensure all tests pass
+- **Documentation**: Update docstrings and README as needed
+- **Commits**: Use conventional commit messages
+
+### Running Tests
+
+```bash
+# Run all tests
+uv run pytest
+
+# Run with coverage
+uv run pytest --cov=tomo --cov-report=html
+
+# Run specific test file
+uv run pytest tests/test_core.py
+```
+
+### Submitting Changes
+
+1. **Test your changes** thoroughly
+2. **Update documentation** if needed
+3. **Create a pull request** with a clear description
+4. **Link any related issues** in the PR description
+
+### Areas for Contribution
+
+- **New LLM Adapters**: Support for additional LLM providers
+- **Tool Examples**: More example tools and use cases
+- **Documentation**: Improvements to docs and tutorials
+- **Performance**: Optimizations and performance improvements
+- **Testing**: Additional test coverage and edge cases
+
+---
+
+## 📄 License
+
+This project is licensed under the **MIT License** - see the [LICENSE](LICENSE) file for details.
+
+The MIT License is a permissive license that allows you to:
+- Use the software for any purpose
+- Modify the software
+- Distribute the software
+- Distribute modified versions
+- Use it commercially
+
+The only requirement is that the original license and copyright notice be included in any substantial portions of the software.
 
 ---
 
