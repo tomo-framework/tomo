@@ -1,4 +1,4 @@
-"""OpenAI adapter for Tomo tools."""
+"""Google Gemini adapter for Tomo tools."""
 
 from typing import List, Dict, Any, Optional, Union
 from .base import BaseAdapter
@@ -6,70 +6,74 @@ from ..core.registry import ToolRegistry
 from ..core.tool import BaseTool
 
 
-class OpenAIAdapter(BaseAdapter):
-    """Adapter for converting Tomo tools to OpenAI function calling format."""
+class GeminiAdapter(BaseAdapter):
+    """Adapter for converting Tomo tools to Google Gemini tool format."""
 
     def __init__(self) -> None:
-        """Initialize the OpenAI adapter."""
+        """Initialize the Gemini adapter."""
         pass
 
     def export_tools(self, registry: ToolRegistry) -> List[Dict[str, Any]]:
-        """Export all tools from registry as OpenAI function schemas.
+        """Export all tools from registry as Gemini tool schemas.
 
         Args:
             registry: The tool registry to export from.
 
         Returns:
-            A list of OpenAI function schemas.
+            A list of Gemini tool schemas.
         """
-        return registry.export_schemas()
+        tools = []
+        for tool_name in registry.list():
+            tool_class = registry.get(tool_name)
+            if tool_class:
+                tools.append(self.export_tool(tool_class))
+        return tools
 
     def export_tool(self, tool_class: type[BaseTool]) -> Dict[str, Any]:
-        """Export a single tool as OpenAI function schema.
+        """Export a single tool as Gemini tool schema.
 
         Args:
             tool_class: The tool class to export.
 
         Returns:
-            OpenAI function schema for the tool.
+            Gemini tool schema for the tool.
         """
-        return tool_class.get_schema()
+        openai_schema = tool_class.get_schema()
+
+        # Convert OpenAI format to Gemini format
+        gemini_schema = {
+            "name": openai_schema.get("name"),
+            "description": openai_schema.get("description", ""),
+            "parameters": openai_schema.get("parameters", {}),
+        }
+
+        return gemini_schema
 
     def convert_tool_call(self, tool_call: Dict[str, Any]) -> Dict[str, Any]:
-        """Convert an OpenAI tool call to Tomo format.
+        """Convert a Gemini tool call to Tomo format.
 
         Args:
-            tool_call: OpenAI tool call object.
+            tool_call: Gemini tool call object.
 
         Returns:
             Dictionary with 'tool_name' and 'inputs' keys.
         """
-        function = tool_call.get("function", {})
-        tool_name = function.get("name")
+        tool_name = tool_call.get("name")
+        args = tool_call.get("args", {})
 
-        # Parse arguments from JSON string if needed
-        arguments = function.get("arguments", {})
-        if isinstance(arguments, str):
-            import json
-
-            try:
-                arguments = json.loads(arguments)
-            except json.JSONDecodeError:
-                arguments = {}
-
-        return {"tool_name": tool_name, "inputs": arguments}
+        return {"tool_name": tool_name, "inputs": args}
 
     def format_tool_result(
         self, result: Any, tool_call_id: Optional[str] = None
     ) -> Dict[str, Any]:
-        """Format a tool result for OpenAI response.
+        """Format a tool result for Gemini response.
 
         Args:
             result: The tool execution result.
             tool_call_id: Optional tool call ID for response matching.
 
         Returns:
-            Formatted tool result for OpenAI.
+            Formatted tool result for Gemini.
         """
         # Convert result to string if it's not already
         if not isinstance(result, str):
@@ -82,10 +86,20 @@ class OpenAIAdapter(BaseAdapter):
         else:
             content = result
 
-        response = {"role": "tool", "content": content}
-
-        if tool_call_id:
-            response["tool_call_id"] = tool_call_id
+        response = {
+            "role": "model",
+            "parts": [
+                {
+                    "functionResponse": {
+                        "name": tool_call_id or "unknown",
+                        "response": {
+                            "name": tool_call_id or "unknown",
+                            "content": content,
+                        },
+                    }
+                }
+            ],
+        }
 
         return response
 
@@ -133,7 +147,7 @@ class OpenAIAdapter(BaseAdapter):
         """Validate that a tool call is valid for the given registry.
 
         Args:
-            tool_call: OpenAI tool call object.
+            tool_call: Gemini tool call object.
             registry: The tool registry to validate against.
 
         Returns:

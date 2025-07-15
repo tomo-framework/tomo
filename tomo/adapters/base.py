@@ -1,93 +1,68 @@
-"""OpenAI adapter for Tomo tools."""
+"""Base adapter class for LLM providers."""
 
-from typing import List, Dict, Any, Optional, Union
-from .base import BaseAdapter
+from abc import ABC, abstractmethod
+from typing import List, Dict, Any, Optional
 from ..core.registry import ToolRegistry
 from ..core.tool import BaseTool
 
 
-class OpenAIAdapter(BaseAdapter):
-    """Adapter for converting Tomo tools to OpenAI function calling format."""
+class BaseAdapter(ABC):
+    """Base class for LLM adapters.
 
-    def __init__(self) -> None:
-        """Initialize the OpenAI adapter."""
-        pass
+    This class defines the common interface that all LLM adapters must implement.
+    Each adapter converts Tomo tools to the specific format required by its LLM provider.
+    """
 
+    @abstractmethod
     def export_tools(self, registry: ToolRegistry) -> List[Dict[str, Any]]:
-        """Export all tools from registry as OpenAI function schemas.
+        """Export all tools from registry as LLM-specific schemas.
 
         Args:
             registry: The tool registry to export from.
 
         Returns:
-            A list of OpenAI function schemas.
+            A list of LLM-specific tool schemas.
         """
-        return registry.export_schemas()
+        pass
 
+    @abstractmethod
     def export_tool(self, tool_class: type[BaseTool]) -> Dict[str, Any]:
-        """Export a single tool as OpenAI function schema.
+        """Export a single tool as LLM-specific schema.
 
         Args:
             tool_class: The tool class to export.
 
         Returns:
-            OpenAI function schema for the tool.
+            LLM-specific tool schema for the tool.
         """
-        return tool_class.get_schema()
+        pass
 
+    @abstractmethod
     def convert_tool_call(self, tool_call: Dict[str, Any]) -> Dict[str, Any]:
-        """Convert an OpenAI tool call to Tomo format.
+        """Convert an LLM tool call to Tomo format.
 
         Args:
-            tool_call: OpenAI tool call object.
+            tool_call: LLM-specific tool call object.
 
         Returns:
             Dictionary with 'tool_name' and 'inputs' keys.
         """
-        function = tool_call.get("function", {})
-        tool_name = function.get("name")
+        pass
 
-        # Parse arguments from JSON string if needed
-        arguments = function.get("arguments", {})
-        if isinstance(arguments, str):
-            import json
-
-            try:
-                arguments = json.loads(arguments)
-            except json.JSONDecodeError:
-                arguments = {}
-
-        return {"tool_name": tool_name, "inputs": arguments}
-
+    @abstractmethod
     def format_tool_result(
         self, result: Any, tool_call_id: Optional[str] = None
     ) -> Dict[str, Any]:
-        """Format a tool result for OpenAI response.
+        """Format a tool result for LLM response.
 
         Args:
             result: The tool execution result.
             tool_call_id: Optional tool call ID for response matching.
 
         Returns:
-            Formatted tool result for OpenAI.
+            Formatted tool result for the LLM.
         """
-        # Convert result to string if it's not already
-        if not isinstance(result, str):
-            import json
-
-            try:
-                content = json.dumps(result, default=str)
-            except (TypeError, ValueError):
-                content = str(result)
-        else:
-            content = result
-
-        response = {"role": "tool", "content": content}
-
-        if tool_call_id:
-            response["tool_call_id"] = tool_call_id
-
-        return response
+        pass
 
     def create_system_prompt(
         self, registry: ToolRegistry, custom_instructions: Optional[str] = None
@@ -133,7 +108,7 @@ class OpenAIAdapter(BaseAdapter):
         """Validate that a tool call is valid for the given registry.
 
         Args:
-            tool_call: OpenAI tool call object.
+            tool_call: LLM-specific tool call object.
             registry: The tool registry to validate against.
 
         Returns:

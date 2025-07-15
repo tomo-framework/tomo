@@ -41,11 +41,17 @@ openai = [
 anthropic = [
     "anthropic>=0.21.0",
 ]
+orchestrator = [
+    "openai>=1.0.0",
+    "anthropic>=0.21.0",
+    "asyncio-mqtt>=0.16.0",
+]
 all = [
     "typer>=0.9.0",
     "rich>=13.0.0",
     "openai>=1.0.0",
     "anthropic>=0.21.0",
+    "asyncio-mqtt>=0.16.0",
 ]
 dev = [
     "pytest>=7.0.0",

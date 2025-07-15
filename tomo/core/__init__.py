@@ -7,6 +7,6 @@ from .runner import ToolRunner
 __all__ = [
     "BaseTool",
     "tool",
-    "ToolRegistry", 
+    "ToolRegistry",
     "ToolRunner",
-] 
+]

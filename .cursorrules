@@ -1,0 +1,89 @@
+# Cursor Rules for Tomo Project
+# This file helps Cursor ignore files that are irrelevant for AI context
+
+# Build and distribution artifacts
+build/
+dist/
+*.egg-info/
+*.egg
+
+# Python cache and bytecode
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+
+# Virtual environments
+venv/
+.venv/
+env/
+.env/
+ENV/
+env.bak/
+venv.bak/
+
+# Coverage reports and test artifacts
+htmlcov/
+.coverage
+.coverage.*
+coverage.xml
+*.cover
+.pytest_cache/
+.tox/
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Log files
+*.log
+logs/
+
+# Temporary files
+*.tmp
+*.temp
+*.bak
+*.backup
+
+# Documentation build artifacts
+docs/_build/
+site/
+
+# Package manager files (keep pyproject.toml but ignore lock files)
+pip-log.txt
+pip-delete-this-directory.txt
+.pip-cache/
+
+# Jupyter Notebook checkpoints
+.ipynb_checkpoints/
+
+# mypy cache
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# Profiling data
+.prof
+
+# Database files
+*.db
+*.sqlite
+*.sqlite3
+
+# Environment variables
+.env
+.env.local
+.env.*.local 

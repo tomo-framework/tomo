@@ -2,24 +2,25 @@
 
 ## Overview
 
-**Tomo** is a lightweight, language-model-agnostic framework that allows developers to define, register, and execute **typed tools**. These tools can be invoked programmatically, by an LLM through function calling, or remotely via orchestration interfaces like agents or MCPs. Tomo is built for speed, simplicity, and developer ergonomics — not complexity.
+**Tomo** is a lightweight, language-model-agnostic framework that allows developers to define, register, and execute **typed tools**. These tools can be invoked programmatically, by an LLM through function calling, or through intelligent orchestration. Tomo is built for speed, simplicity, and developer ergonomics — not complexity.
 
 ---
 
 ## ✨ Core Value Proposition
 
 > **Define once, use anywhere.**  
-> Tomo empowers developers to define structured tools (functions, APIs, actions) that can be executed by any LLM or used directly in Python. It offers composability without lock-in, and orchestration without bloated chains or graphs.
+> Tomo empowers developers to define structured tools (functions, APIs, actions) that can be executed by any LLM or used directly in Python. It offers composability without lock-in, and intelligent orchestration without bloated chains or graphs.
 
 ---
 
 ## 🎯 Goals
 
 - ✅ Provide a minimal API for defining and registering tools
-- ✅ Support **LLM-agnostic** tool invocation (OpenAI, Claude, Grok, local LLMs, etc.)
-- ✅ Allow tools to be called programmatically (Python) or by agents (via MCP)
-- ✅ Enable introspection and metadata export (e.g., OpenAI tool schema, Anthropic tool format)
-- ✅ Optional orchestration via a simple LLM-based agent runner
+- ✅ Support **LLM-agnostic** tool invocation (OpenAI, Claude, Gemini, Cohere, Mistral, etc.)
+- ✅ Allow tools to be called programmatically (Python) or by agents
+- ✅ Enable introspection and metadata export for all major LLM providers
+- ✅ Intelligent orchestration via LLM-based decision making
+- ✅ Multi-step workflow support with conversation memory
 
 ---
 
@@ -65,45 +66,74 @@ Convert tools to match different LLM provider schemas:
 
 ```python
 OpenAIAdapter().export_tools(registry)
-ClaudeAdapter().export_tools(registry)
+AnthropicAdapter().export_tools(registry)
+GeminiAdapter().export_tools(registry)
 ```
 
-### 🤖 Orchestrator (Optional Agent Mode)
+### 🤖 Orchestrator
 
-An LLM-based control loop that:
-- Takes user input
-- Chooses the right tool via LLM
-- Executes it and returns output
+An intelligent LLM-based control loop that:
+- Analyzes user intent using LLM
+- Selects appropriate tools automatically
+- Executes tools with proper parameters
+- Handles multi-step workflows
+- Maintains conversation context
 
 ```python
-agent = LLMOrchestrator(llm=Claude(), tools=registry.list())
-agent.run("Translate 'dog' to French")
+orchestrator = LLMOrchestrator(
+    llm_client=openai_client,
+    registry=registry,
+    adapter=OpenAIAdapter(),
+    config=OrchestrationConfig(max_iterations=5)
+)
+response = await orchestrator.run("Calculate the weather in Tokyo and convert to Fahrenheit")
 ```
 
 ---
 
-## 📦 MVP Scope
+## 📦 Project Scope
 
-### ✅ Features (Phase 1)
+### ✅ Completed Features
 
+**Core System:**
 - Tool decorator and schema (based on Pydantic)
-- ToolRegistry for discovery
-- ToolRunner for local execution
-- Adapter for OpenAI function-calling schema
-- Basic orchestrator using OpenAI or Claude
-- CLI with `tomo run` and `tomo list`
-- Export to JSON schema for external tools
+- ToolRegistry for discovery and management
+- ToolRunner for local execution with validation
+- Comprehensive test suite and documentation
 
-### ❌ Not in MVP
+**LLM Adapters:**
+- OpenAI (GPT-4, GPT-3.5-turbo)
+- Anthropic (Claude models)
+- Google Gemini
+- Azure OpenAI
+- Cohere (Command R+)
+- Mistral AI
 
-- Multi-step workflows or graph-based execution
-- Web UI or dashboard
-- Built-in vector search or memory
-- Fine-grained auth or persistence
+**Orchestration:**
+- LLM-based intelligent tool selection
+- Multi-step workflow support
+- Conversation memory and context management
+- Configurable execution parameters
+- Error handling and retry logic
+
+**CLI Interface:**
+- `tomo list` - List available tools
+- `tomo run` - Execute tools directly
+- `tomo schema` - Export schemas for LLM providers
+- `tomo orchestrate` - Run LLM-based orchestration
+
+### 🔄 In Development
+
+- Workflow engine for complex multi-step processes
+- API server for external integrations
+- Plugin system for custom extensions
+- Web dashboard for tool inspection
 
 ---
 
-## 🧪 Example Use Case
+## 🧪 Example Use Cases
+
+### Basic Tool Usage
 
 ```python
 @tool
@@ -116,8 +146,36 @@ class Weather(BaseTool):
 registry = ToolRegistry()
 registry.register(Weather)
 
-agent = LLMOrchestrator(llm=OpenAI(), tools=registry.list())
-agent.run("What's the weather in Tokyo?")
+# Direct execution
+runner = ToolRunner(registry)
+result = runner.run_tool("Weather", {"city": "Tokyo"})
+```
+
+### LLM Orchestration
+
+```python
+from tomo import LLMOrchestrator, OrchestrationConfig
+from tomo.adapters import OpenAIAdapter
+
+# Set up orchestrator
+orchestrator = LLMOrchestrator(
+    llm_client=openai_client,
+    registry=registry,
+    adapter=OpenAIAdapter(),
+    config=OrchestrationConfig(max_iterations=5)
+)
+
+# Run intelligent orchestration
+response = await orchestrator.run("What's the weather in Tokyo and convert the temperature to Fahrenheit?")
+```
+
+### Multi-Provider Support
+
+```python
+# Export for different LLM providers
+openai_schemas = OpenAIAdapter().export_tools(registry)
+anthropic_schemas = AnthropicAdapter().export_tools(registry)
+gemini_schemas = GeminiAdapter().export_tools(registry)
 ```
 
 ---
@@ -125,21 +183,28 @@ agent.run("What's the weather in Tokyo?")
 ## 🧰 Tech Stack
 
 - **Python 3.10+**
-- **Pydantic** – for schema validation
-- **Typer** – for CLI (optional)
-- **OpenAI SDK / Anthropic SDK** – for orchestrator
-- **Optional Rust (via PyO3)** – for performance-critical tool extensions
+- **Pydantic** – for schema validation and type safety
+- **Typer** – for CLI interface
+- **Rich** – for beautiful terminal output
+- **OpenAI SDK** – for OpenAI integration
+- **Anthropic SDK** – for Claude integration
+- **AsyncIO** – for concurrent tool execution
 
 ---
 
-## 🔮 Future Ideas
+## 🔮 Roadmap
 
-- 🧠 Fine-grained state handling (LangGraph-style)
-- 🕸️ Workflow engine / tool chaining
-- 🌐 Web dashboard for tool inspection
-- 🐍 SDK generation from tools
-- ⚙️ Plugin system for adapters
-- 🧪 LLM-based tool testing suite
+### Phase 2: Advanced Features
+- 🧠 Workflow engine for complex multi-step processes
+- 🌐 API server for external integrations
+- 🔌 Plugin system for custom extensions
+- 📊 Web dashboard for tool inspection and monitoring
+
+### Phase 3: Enterprise Features
+- 🔐 Security and access control
+- 📈 Monitoring and analytics
+- 🗄️ Persistent storage and state management
+- 🔄 Advanced workflow patterns
 
 ---
 
@@ -159,21 +224,31 @@ It's short, friendly, and reflects what the framework does: help LLMs and devs "
 
 ---
 
-## 📍 Repo Structure (Proposal)
+## 📍 Repository Structure
 
 ```
 tomo/
-├── core/           # tool, registry, runner
-├── adapters/       # openai.py, anthropic.py, mistral.py
-├── orchestrators/  # llm_runner.py
-├── cli/            # tomo CLI with Typer
-├── examples/       # example tools and agent usage
-├── tests/
+├── tomo/
+│   ├── core/           # tool, registry, runner
+│   ├── adapters/       # LLM provider adapters
+│   ├── orchestrators/  # LLM orchestrator components
+│   └── cli/            # Command-line interface
+├── examples/           # Example tools and usage
+├── tests/              # Test suite
+├── docs/               # Documentation
+└── ADAPTERS.md         # Adapter documentation
 ```
 
 ---
 
 ## 🚀 Installation & Setup
+
+### Prerequisites
+
+- Python 3.10 or higher
+- For LLM orchestration: API keys for your chosen LLM provider(s)
+
+### Quick Install
 
 ### Using uv (Recommended)
 
@@ -186,7 +261,7 @@ cd tomo
 uv sync
 
 # Install with optional dependencies
-uv sync --extra cli --extra openai --extra anthropic
+uv sync --extra cli --extra openai --extra anthropic --extra orchestrator
 
 # Or install everything
 uv sync --extra all
@@ -201,7 +276,22 @@ uv shell
 pip install -e .
 
 # With optional dependencies
-pip install -e .[cli,openai,anthropic]
+pip install -e .[cli,openai,anthropic,orchestrator]
+```
+
+### Environment Setup
+
+For LLM orchestration, set your API keys:
+
+```bash
+# OpenAI
+export OPENAI_API_KEY="your-openai-api-key"
+
+# Anthropic
+export ANTHROPIC_API_KEY="your-anthropic-api-key"
+
+# Google Gemini
+export GOOGLE_API_KEY="your-google-api-key"
 ```
 
 ## 🎯 Quick Start
@@ -256,10 +346,13 @@ tomo list --module examples.basic_tools
 tomo run Calculator --module examples.basic_tools --inputs '{"operation": "add", "a": 5, "b": 3}'
 
 # Export tool schemas for LLM use
-tomo schema --module examples.basic_tools --output tools.json
+tomo schema --module examples.basic_tools --format openai --output tools.json
+
+# Run LLM orchestration
+tomo orchestrate "Calculate 15 + 25" --module examples.basic_tools --provider openai
 ```
 
-### 4. Export for OpenAI
+### 4. LLM Integration
 
 ```python
 from tomo.adapters import OpenAIAdapter
@@ -278,7 +371,43 @@ response = client.chat.completions.create(
 )
 ```
 
+### 5. Advanced Orchestration
+
+```python
+from tomo import LLMOrchestrator, OrchestrationConfig
+
+# Configure orchestrator
+config = OrchestrationConfig(
+    max_iterations=5,
+    temperature=0.1,
+    enable_memory=True
+)
+
+orchestrator = LLMOrchestrator(
+    llm_client=openai_client,
+    registry=registry,
+    adapter=OpenAIAdapter(),
+    config=config
+)
+
+# Run complex workflows
+response = await orchestrator.run(
+    "Get the weather in Tokyo, convert the temperature to Fahrenheit, "
+    "and calculate how many degrees warmer it is than 20°F"
+)
+```
+
 ## 🧪 Development
+
+### Running the Orchestrator Demo
+
+```bash
+# Run the orchestrator component demo (works without LLM)
+python examples/orchestrator_demo.py
+
+# Run the full orchestrator demo (requires LLM client setup)
+# python examples/orchestrator_demo.py --full
+```
 
 ### Running Tests
 
@@ -308,22 +437,26 @@ uv run mypy tomo/
 
 ## 📦 Project Status
 
-✅ **Completed (MVP)**
-- ✅ Core tool system with `@tool` decorator
-- ✅ `ToolRegistry` for tool management
-- ✅ `ToolRunner` for execution
-- ✅ OpenAI adapter for function calling
-- ✅ CLI with `tomo list`, `tomo run`, `tomo schema`
-- ✅ Comprehensive test suite
-- ✅ Example tools and documentation
+✅ **Phase 1: Core Orchestration (Complete)**
+- ✅ Core tool system with `@tool` decorator and Pydantic validation
+- ✅ `ToolRegistry` for tool discovery and management
+- ✅ `ToolRunner` for execution with error handling
+- ✅ **6 LLM Adapters**: OpenAI, Anthropic, Gemini, Azure OpenAI, Cohere, Mistral
+- ✅ **LLM Orchestrator** with intelligent tool selection and multi-step workflows
+- ✅ **Conversation Manager** with memory and context management
+- ✅ **Execution Engine** with retry logic and parallel execution
+- ✅ **CLI Interface** with `tomo list`, `tomo run`, `tomo schema`, `tomo orchestrate`
+- ✅ Comprehensive test suite and documentation
+- ✅ Example tools and orchestrator demos
 
-🔄 **In Progress**
-- 🔄 Anthropic adapter
-- 🔄 LLM orchestrator
-- 🔄 Additional adapters (Mistral, local LLMs)
+🔄 **Phase 2: Advanced Features (In Development)**
+- 🔄 Workflow engine for complex multi-step processes
+- 🔄 API server for external integrations
+- 🔄 Plugin system for custom extensions
+- 🔄 Web dashboard for tool inspection and monitoring
 
-📋 **Planned**
-- 📋 Plugin system
-- 📋 Workflow engine
-- 📋 Web dashboard
-- 📋 SDK generation
+📋 **Phase 3: Enterprise Features (Planned)**
+- 📋 Security and access control
+- 📋 Monitoring and analytics
+- 📋 Persistent storage and state management
+- 📋 Advanced workflow patterns
