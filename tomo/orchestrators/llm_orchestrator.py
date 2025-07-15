@@ -1,14 +1,13 @@
-"""LLM-based orchestrator for tool execution."""
+"""LLM orchestrator for intelligent tool execution."""
 
-from typing import Any, Dict, List, Optional, Union
+import asyncio
 from dataclasses import dataclass
-
+from typing import Any, Dict, List, Optional, Union
 from ..core.registry import ToolRegistry
 from ..core.runner import ToolRunner
 from ..adapters.base import BaseAdapter
 from .conversation import ConversationManager
 from .execution import ExecutionEngine
-from tomo.core import runner
 
 
 @dataclass
@@ -26,15 +25,7 @@ class OrchestrationConfig:
 
 
 class LLMOrchestrator:
-    """LLM-based orchestrator for intelligent tool execution.
-
-    This orchestrator uses an LLM to:
-    1. Analyze user intent
-    2. Select appropriate tools
-    3. Execute tools with proper parameters
-    4. Handle multi-step workflows
-    5. Provide coherent responses
-    """
+    """Intelligent orchestrator that uses LLM to select and execute tools."""
 
     def __init__(
         self,
@@ -43,12 +34,12 @@ class LLMOrchestrator:
         adapter: BaseAdapter,
         config: Optional[OrchestrationConfig] = None,
     ):
-        """Initialize the LLM orchestrator.
+        """Initialize the orchestrator.
 
         Args:
-            llm_client: LLM client (OpenAI, Anthropic, etc.)
+            llm_client: LLM client for making API calls
             registry: Tool registry containing available tools
-            adapter: Adapter for converting between LLM and Tomo formats
+            adapter: Adapter for converting between LLM formats
             config: Orchestration configuration
         """
         self.llm_client = llm_client
@@ -59,7 +50,7 @@ class LLMOrchestrator:
         # Initialize components
         self.runner = ToolRunner(registry)
         self.conversation = ConversationManager() if self.config.enable_memory else None
-        self.execution_engine = ExecutionEngine(runner, adapter)
+        self.execution_engine = ExecutionEngine(self.runner, self.adapter)
 
         # Create system prompt
         self.system_prompt = self._create_system_prompt()
@@ -105,7 +96,7 @@ Available tools are listed below:
             self.conversation.add_message("user", user_input)
 
         # Initialize execution context
-        context = {
+        context: Dict[str, Any] = {
             "user_input": user_input,
             "iteration": 0,
             "executed_tools": [],
@@ -133,8 +124,10 @@ Available tools are listed below:
             tool_results = await self._execute_tools(tool_calls, context)
 
             # Add results to context
-            context["executed_tools"].extend([call["name"] for call in tool_calls])
-            context["results"].extend(tool_results)
+            if isinstance(context["executed_tools"], list):
+                context["executed_tools"].extend([call.get("name", "unknown") for call in tool_calls])
+            if isinstance(context["results"], list):
+                context["results"].extend(tool_results)
 
             # Check if we should continue or finish
             if self._should_continue(tool_results, context):
@@ -184,7 +177,11 @@ Available tools are listed below:
 
         # Add conversation history if available
         if self.conversation:
-            messages.extend(self.conversation.get_messages())
+            conv_messages = self.conversation.get_messages()
+            # Convert to the expected format
+            for msg in conv_messages:
+                if isinstance(msg, dict) and "role" in msg and "content" in msg:
+                    messages.append({"role": str(msg["role"]), "content": str(msg["content"])})
 
         # Add current context
         if context["results"]:
@@ -204,7 +201,7 @@ Available tools are listed below:
         """Extract tool calls from LLM response."""
         # This is a simplified implementation
         # In practice, you'd parse the actual LLM response format
-        tool_calls = []
+        tool_calls: List[Dict[str, Any]] = []
 
         # Look for tool call patterns in the response
         if "tool_call" in llm_response.lower() or "function" in llm_response.lower():
@@ -229,11 +226,11 @@ Available tools are listed below:
             try:
                 result = await self.execution_engine.execute_tool(tool_call)
                 results.append(
-                    {"tool": tool_call["name"], "success": True, "result": result}
+                    {"tool": tool_call.get("name", "unknown"), "success": True, "result": result}
                 )
             except Exception as e:
                 results.append(
-                    {"tool": tool_call["name"], "success": False, "error": str(e)}
+                    {"tool": tool_call.get("name", "unknown"), "success": False, "error": str(e)}
                 )
 
         return results
@@ -286,12 +283,12 @@ Available tools are listed below:
 
         return "; ".join(summary_parts)
 
-    def reset_conversation(self):
+    def reset_conversation(self) -> None:
         """Reset conversation history."""
         if self.conversation:
             self.conversation.clear()
 
-    def get_conversation_history(self) -> List[Dict[str, str]]:
+    def get_conversation_history(self) -> List[Dict[str, Union[str, Dict[str, Any]]]]:
         """Get conversation history."""
         if self.conversation:
             return self.conversation.get_messages()

@@ -1,6 +1,6 @@
 """Conversation management for orchestrator."""
 
-from typing import List, Dict, Any, Optional
+from typing import List, Dict, Any, Optional, Union
 from dataclasses import dataclass, field
 from datetime import datetime
 
@@ -18,7 +18,7 @@ class Message:
 class ConversationManager:
     """Manages conversation history and context for the orchestrator."""
 
-    def __init__(self, max_messages: int = 50):
+    def __init__(self, max_messages: int = 50) -> None:
         """Initialize conversation manager.
 
         Args:
@@ -30,7 +30,7 @@ class ConversationManager:
 
     def add_message(
         self, role: str, content: str, metadata: Optional[Dict[str, Any]] = None
-    ):
+    ) -> None:
         """Add a message to the conversation.
 
         Args:
@@ -52,7 +52,7 @@ class ConversationManager:
             keep_count = self.max_messages - len(system_messages)
             self.messages = system_messages + other_messages[-keep_count:]
 
-    def get_messages(self, include_metadata: bool = False) -> List[Dict[str, str]]:
+    def get_messages(self, include_metadata: bool = False) -> List[Dict[str, Union[str, Dict[str, Any]]]]:
         """Get conversation messages in LLM format.
 
         Args:
@@ -61,10 +61,10 @@ class ConversationManager:
         Returns:
             List of message dictionaries
         """
-        result = []
+        result: List[Dict[str, Union[str, Dict[str, Any]]]] = []
 
         for message in self.messages:
-            msg_dict = {"role": message.role, "content": message.content}
+            msg_dict: Dict[str, Union[str, Dict[str, Any]]] = {"role": message.role, "content": message.content}
 
             if include_metadata and message.metadata:
                 msg_dict["metadata"] = message.metadata
@@ -73,7 +73,7 @@ class ConversationManager:
 
         return result
 
-    def get_recent_messages(self, count: int = 10) -> List[Dict[str, str]]:
+    def get_recent_messages(self, count: int = 10) -> List[Dict[str, Union[str, Dict[str, Any]]]]:
         """Get recent messages.
 
         Args:
@@ -87,7 +87,7 @@ class ConversationManager:
         )
         return self.get_messages()[-count:]
 
-    def add_tool_result(self, tool_name: str, result: Any, success: bool = True):
+    def add_tool_result(self, tool_name: str, result: Any, success: bool = True) -> None:
         """Add a tool execution result to conversation.
 
         Args:
@@ -105,7 +105,7 @@ class ConversationManager:
             metadata={"tool_name": tool_name, "success": success, "result": result},
         )
 
-    def set_context(self, key: str, value: Any):
+    def set_context(self, key: str, value: Any) -> None:
         """Set a context value.
 
         Args:
@@ -126,11 +126,11 @@ class ConversationManager:
         """
         return self.context.get(key, default)
 
-    def clear_context(self):
+    def clear_context(self) -> None:
         """Clear all context values."""
         self.context.clear()
 
-    def clear(self):
+    def clear(self) -> None:
         """Clear conversation history and context."""
         self.messages.clear()
         self.context.clear()

@@ -1,6 +1,6 @@
 """Core tool definitions and decorators."""
 
-from typing import Any, Dict, Type, TypeVar, Union, get_type_hints
+from typing import Any, Dict, Type, TypeVar, Union, get_type_hints, Callable, Optional
 from abc import ABC, abstractmethod
 import inspect
 from pydantic import BaseModel, Field, create_model
@@ -72,13 +72,13 @@ def tool(cls: Type[T]) -> Type[T]:
         raise TypeError(f"Tool {cls.__name__} must implement the run() method")
 
     # Add tool metadata
-    cls._is_tomo_tool = True
+    setattr(cls, "_is_tomo_tool", True)
 
     return cls
 
 
 def create_tool_from_function(
-    func: callable, name: str = None, description: str = None
+    func: Callable[..., Any], name: Optional[str] = None, description: Optional[str] = None
 ) -> Type[BaseTool]:
     """Create a Tool class from a regular function.
 
@@ -90,15 +90,18 @@ def create_tool_from_function(
     Returns:
         A new Tool class that wraps the function.
     """
+    if not hasattr(func, "__name__"):
+        raise ValueError("Function must have a __name__ attribute")
+    
     tool_name = name or func.__name__
-    tool_description = description or func.__doc__ or f"Tool: {tool_name}"
+    tool_description = description or (func.__doc__ or f"Tool: {tool_name}")
 
     # Get function signature and type hints
     sig = inspect.signature(func)
     type_hints = get_type_hints(func)
 
     # Create fields for the Pydantic model
-    fields = {}
+    fields: Dict[str, Any] = {}
     for param_name, param in sig.parameters.items():
         param_type = type_hints.get(param_name, Any)
 
@@ -109,7 +112,7 @@ def create_tool_from_function(
             fields[param_name] = (param_type, ...)
 
     # Create the tool class dynamically
-    def run_method(self) -> Any:
+    def run_method(self: BaseTool) -> Any:
         # Extract field values and call original function
         kwargs = {name: getattr(self, name) for name in fields.keys()}
         return func(**kwargs)
@@ -118,8 +121,8 @@ def create_tool_from_function(
     tool_class = create_model(tool_name, __base__=BaseTool, **fields)
 
     # Add the run method and metadata
-    tool_class.run = run_method
+    setattr(tool_class, "run", run_method)
     tool_class.__doc__ = tool_description
-    tool_class._is_tomo_tool = True
+    setattr(tool_class, "_is_tomo_tool", True)
 
     return tool_class

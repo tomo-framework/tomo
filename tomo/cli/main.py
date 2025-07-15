@@ -72,7 +72,7 @@ def load_tools_from_module(module_path: str) -> ToolRegistry:
     return registry
 
 
-@app.command("list")
+@app.command("list")  # type: ignore
 def list_tools(
     module: Optional[str] = typer.Option(
         None, "--module", "-m", help="Python module to load tools from"
@@ -83,7 +83,7 @@ def list_tools(
     verbose: bool = typer.Option(
         False, "--verbose", "-v", help="Show detailed information"
     ),
-):
+) -> None:
     """List all available tools."""
     registry = load_tools_from_module(module) if module else ToolRegistry()
 
@@ -123,7 +123,7 @@ def list_tools(
     console.print(table)
 
 
-@app.command("run")
+@app.command("run")  # type: ignore
 def run_tool(
     tool_name: str = typer.Argument(..., help="Name of the tool to run"),
     module: Optional[str] = typer.Option(
@@ -138,7 +138,7 @@ def run_tool(
     safe: bool = typer.Option(
         False, "--safe", help="Use safe execution (structured error handling)"
     ),
-):
+) -> None:
     """Run a specific tool with given inputs."""
     registry = load_tools_from_module(module) if module else ToolRegistry()
     runner = ToolRunner(registry)
@@ -182,7 +182,7 @@ def run_tool(
         raise typer.Exit(1)
 
 
-@app.command("schema")
+@app.command("schema")  # type: ignore
 def export_schema(
     module: Optional[str] = typer.Option(
         None, "--module", "-m", help="Python module to load tools from"
@@ -199,7 +199,7 @@ def export_schema(
     output: Optional[Path] = typer.Option(
         None, "--output", "-o", help="Output file path"
     ),
-):
+) -> None:
     """Export tool schemas for LLM consumption."""
     registry = load_tools_from_module(module) if module else ToolRegistry()
 
@@ -244,7 +244,7 @@ def export_schema(
         console.print(JSON.from_data(schema_data))
 
 
-@app.command("validate")
+@app.command("validate")  # type: ignore
 def validate_tool(
     tool_name: str = typer.Argument(..., help="Name of the tool to validate"),
     module: Optional[str] = typer.Option(
@@ -256,7 +256,7 @@ def validate_tool(
     file: Optional[Path] = typer.Option(
         None, "--file", "-f", help="JSON file containing tool inputs to validate"
     ),
-):
+) -> None:
     """Validate tool inputs without running the tool."""
     registry = load_tools_from_module(module) if module else ToolRegistry()
     runner = ToolRunner(registry)
@@ -295,7 +295,7 @@ def validate_tool(
         raise typer.Exit(1)
 
 
-@app.command("orchestrate")
+@app.command("orchestrate")  # type: ignore
 def orchestrate(
     input_text: str = typer.Argument(..., help="User input to orchestrate"),
     module: Optional[str] = typer.Option(
@@ -312,7 +312,7 @@ def orchestrate(
     memory: bool = typer.Option(
         True, "--memory/--no-memory", help="Enable conversation memory"
     ),
-):
+) -> None:
     """Orchestrate tools using LLM-based decision making."""
     try:
         from ..orchestrators import LLMOrchestrator, OrchestrationConfig

@@ -1,6 +1,6 @@
 """Tool registry for managing and discovering tools."""
 
-from typing import Dict, List, Type, Any, Optional
+from typing import Dict, List, Type, Any, Optional, Iterator
 from .tool import BaseTool
 
 
@@ -120,7 +120,7 @@ class ToolRegistry:
         tool_class = self.get(name)
         return tool_class.get_schema() if tool_class else None
 
-    def auto_discover(self, module) -> int:
+    def auto_discover(self, module: Any) -> int:
         """Auto-discover and register tools from a module.
 
         This method scans a module for classes that inherit from BaseTool
@@ -162,7 +162,7 @@ class ToolRegistry:
         """Check if a tool is registered using 'in' operator."""
         return name in self._tools
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator[str]:
         """Iterate over tool names."""
         return iter(self._tools)
 

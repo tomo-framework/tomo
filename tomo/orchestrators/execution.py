@@ -1,5 +1,10 @@
 """Execution engine for tool orchestration."""
 
+class ExecutionError(Exception):
+    """Exception raised when tool execution fails."""
+
+    pass
+
 import asyncio
 from typing import Any, Dict, List, Optional
 from ..core.runner import ToolRunner
@@ -126,7 +131,7 @@ class ExecutionEngine:
         Returns:
             Tool execution result
         """
-        last_exception = None
+        last_exception: Optional[Exception] = None
 
         for attempt in range(max_retries + 1):
             try:
@@ -141,7 +146,9 @@ class ExecutionEngine:
                 else:
                     break
 
-        raise last_exception
+        if last_exception is not None:
+            raise last_exception
+        raise RuntimeError("Tool execution failed for unknown reason")
 
     def validate_tool_call(self, tool_call: Dict[str, Any]) -> bool:
         """Validate a tool call before execution.
@@ -160,9 +167,3 @@ class ExecutionEngine:
             return self.runner.validate_tool_inputs(tool_name, inputs)
         except Exception:
             return False
-
-
-class ExecutionError(Exception):
-    """Exception raised when tool execution fails."""
-
-    pass
