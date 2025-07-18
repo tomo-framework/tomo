@@ -3,7 +3,7 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "tomo"
+name = "tomo-framework"
 version = "0.1.0"
 description = "Tool-Oriented Micro Orchestrator - A lightweight framework for LLM-agnostic tool execution"
 readme = "README.md"
@@ -46,12 +46,23 @@ orchestrator = [
     "anthropic>=0.21.0",
     "asyncio-mqtt>=0.16.0",
 ]
+server = [
+    "fastapi>=0.100.0",
+    "uvicorn[standard]>=0.23.0",
+    "websockets>=11.0.0",
+]
+mcp = [
+    "websockets>=11.0.0",
+]
 all = [
     "typer>=0.9.0",
     "rich>=13.0.0",
     "openai>=1.0.0",
     "anthropic>=0.21.0",
     "asyncio-mqtt>=0.16.0",
+    "fastapi>=0.100.0",
+    "uvicorn[standard]>=0.23.0",
+    "websockets>=11.0.0",
 ]
 dev = [
     "pytest>=7.0.0",
@@ -66,10 +77,13 @@ dev = [
 tomo = "tomo.cli.main:app"
 
 [project.urls]
-Homepage = "https://github.com/your-username/tomo"
-Repository = "https://github.com/your-username/tomo"
-Documentation = "https://github.com/your-username/tomo#readme"
-Issues = "https://github.com/your-username/tomo/issues"
+Homepage = "https://github.com/tomo-framework/tomo"
+Repository = "https://github.com/tomo-framework/tomo"
+Documentation = "https://github.com/tomo-framework/tomo#readme"
+Issues = "https://github.com/tomo-framework/tomo/issues"
+Changelog = "https://github.com/tomo-framework/tomo/blob/main/CHANGELOG.md"
+"Bug Reports" = "https://github.com/tomo-framework/tomo/issues"
+"Source Code" = "https://github.com/tomo-framework/tomo"
 
 [tool.hatch.build.targets.wheel]
 packages = ["tomo"]
@@ -77,10 +91,16 @@ packages = ["tomo"]
 [tool.black]
 line-length = 88
 target-version = ['py310']
+exclude = '''
+/(
+    docs/.*
+)/
+'''
 
 [tool.ruff]
 line-length = 88
 target-version = "py310"
+exclude = ["docs/"]
 select = [
     "E",  # pycodestyle errors
     "W",  # pycodestyle warnings
@@ -93,6 +113,7 @@ select = [
 
 [tool.mypy]
 python_version = "3.10"
+exclude = ["docs/"]
 warn_return_any = true
 warn_unused_configs = true
 disallow_untyped_defs = true
@@ -116,3 +137,9 @@ addopts = [
     "--cov-report=term-missing",
     "--cov-report=html",
 ] 
+
+[dependency-groups]
+dev = [
+    "build>=1.2.2.post1",
+    "twine>=6.1.0",
+]

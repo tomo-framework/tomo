@@ -58,7 +58,8 @@ logs/
 *.bak
 *.backup
 
-# Documentation build artifacts
+# Documentation and examples (contains sample code with intentional issues)
+docs/
 docs/_build/
 site/
 

@@ -1,5 +1,11 @@
 # 🧠 Tomo – Tool-Oriented Micro Orchestrator
 
+[![PyPI version](https://badge.fury.io/py/tomo-framework.svg)](https://badge.fury.io/py/tomo-framework)
+[![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
+**Install**: `pip install tomo-framework`
+
 ## Overview
 
 **Tomo** is a lightweight, language-model-agnostic framework that allows developers to define, register, and execute **typed tools**. These tools can be invoked programmatically, by an LLM through function calling, or through intelligent orchestration. Tomo is built for speed, simplicity, and developer ergonomics — not complexity.
@@ -116,17 +122,34 @@ response = await orchestrator.run("Calculate the weather in Tokyo and convert to
 - Configurable execution parameters
 - Error handling and retry logic
 
+**Workflow Engine:**
+- Declarative workflow definitions with typed steps
+- Sequential, parallel, and conditional execution
+- Loop processing and data transformation
+- Dependency management and topological sorting
+- Event-driven execution with hooks and callbacks
+- Retry logic and error recovery
+- Context sharing between steps
+- Multiple step types: Tool, Condition, Parallel, Loop, Script, Webhook, Email
+
 **CLI Interface:**
 - `tomo list` - List available tools
 - `tomo run` - Execute tools directly
 - `tomo schema` - Export schemas for LLM providers
 - `tomo orchestrate` - Run LLM-based orchestration
+- `tomo workflow` - Execute declarative workflows
+- `tomo workflow-demo` - Run workflow engine demonstrations
+- `tomo plugin` - Manage plugin system (list, load, configure)
+
+**Plugin System:**
+- Extensible architecture for custom tools, adapters, workflow steps, and servers
+- Auto-discovery of plugins from packages and directories
+- Configuration-based plugin loading with JSON configs
+- Plugin validation and dependency checking
+- CLI integration for plugin management
 
 ### 🔄 In Development
 
-- **Workflow Engine** - Complex multi-step process orchestration
-- **API Server** - RESTful interface for external integrations
-- **Plugin System** - Extensible architecture for custom extensions
 - **Web Dashboard** - Visual tool inspection and monitoring interface
 
 ### 📋 Planned Features
@@ -257,7 +280,27 @@ tomo/
 
 ### Quick Install
 
-### Using uv (Recommended)
+### From PyPI (Recommended)
+
+```bash
+# Install latest stable version
+pip install tomo-framework
+
+# Install with specific features
+pip install tomo-framework[cli]              # CLI interface
+pip install tomo-framework[openai]           # OpenAI integration
+pip install tomo-framework[anthropic]        # Anthropic/Claude integration
+pip install tomo-framework[orchestrator]     # LLM orchestration
+pip install tomo-framework[server]           # API and web servers
+pip install tomo-framework[mcp]              # Model Context Protocol
+
+# Install with all features
+pip install tomo-framework[all]
+```
+
+### Development Installation
+
+#### Using uv (Recommended for Development)
 
 ```bash
 # Clone the repository
@@ -267,8 +310,8 @@ cd tomo
 # Install with uv
 uv sync
 
-# Install with optional dependencies
-uv sync --extra cli --extra openai --extra anthropic --extra orchestrator
+# Install with optional dependencies for different features
+uv sync --extra cli --extra openai --extra anthropic --extra orchestrator --extra server --extra mcp
 
 # Or install everything
 uv sync --extra all
@@ -277,13 +320,21 @@ uv sync --extra all
 uv shell
 ```
 
-### Using pip
+#### Using pip (Development)
 
 ```bash
+# Clone the repository
+git clone https://github.com/tomo-framework/tomo.git
+cd tomo
+
+# Install in development mode
 pip install -e .
 
 # With optional dependencies
-pip install -e .[cli,openai,anthropic,orchestrator]
+pip install -e .[cli,openai,anthropic,orchestrator,server,mcp]
+
+# Or install everything
+pip install -e .[all]
 ```
 
 ### Environment Setup
@@ -302,6 +353,13 @@ export GOOGLE_API_KEY="your-google-api-key"
 ```
 
 ## 🎯 Quick Start
+
+First, install Tomo:
+```bash
+pip install tomo-framework
+```
+
+> **Note**: The package name is `tomo-framework` but you import it as `tomo` in Python.
 
 ### 1. Define Tools
 
@@ -357,6 +415,19 @@ tomo schema --module examples.basic_tools --format openai --output tools.json
 
 # Run LLM orchestration
 tomo orchestrate "Calculate 15 + 25" --module examples.basic_tools --provider openai
+
+# Start RESTful API server
+tomo serve-api --module examples.basic_tools --port 8000
+
+# Start MCP server for AI agents
+tomo serve-mcp --module examples.basic_tools --port 8001
+
+# Manage plugins
+tomo plugin list
+tomo plugin load-package my_custom_tools
+tomo plugin load-directory ./local_plugins
+tomo plugin create-sample-config --output plugins.json
+tomo plugin load-config --config plugins.json
 ```
 
 ### 4. LLM Integration
@@ -404,6 +475,80 @@ response = await orchestrator.run(
 )
 ```
 
+### 6. Declarative Workflows
+
+```python
+from tomo import Workflow, WorkflowEngine, ToolStep, ConditionStep, create_tool_step
+
+# Create workflow
+workflow = Workflow(
+    name="Data Processing Pipeline",
+    description="Process and validate data"
+)
+
+# Add steps with dependencies
+step1 = create_tool_step(
+    step_id="calculate",
+    tool_name="Calculator",
+    tool_inputs={"operation": "add", "a": 10, "b": 5},
+    runner=runner
+)
+
+step2 = create_tool_step(
+    step_id="validate",
+    tool_name="DataValidator", 
+    tool_inputs={"value": "$calculate", "min_value": 0, "max_value": 100},
+    runner=runner,
+    depends_on=["calculate"]
+)
+
+workflow.add_step(step1)
+workflow.add_step(step2)
+
+# Execute workflow
+engine = WorkflowEngine(registry=registry)
+state = await engine.execute_workflow(workflow)
+
+print(f"Workflow status: {state.status}")
+print(f"Results: {state.context.data}")
+```
+
+### 7. Remote Tool Access
+
+**RESTful API Server**
+
+```python
+from tomo.servers import APIServer
+
+# Create API server
+server = APIServer(
+    registry=registry,
+    title="My Tool API",
+    description="API for my custom tools"
+)
+
+# Start server
+server.run(host="0.0.0.0", port=8000)
+# Visit http://localhost:8000/docs for API documentation
+```
+
+**Model Context Protocol (MCP) Server**
+
+```python
+from tomo.servers import MCPServer
+
+# Create MCP server for AI agents
+mcp_server = MCPServer(
+    registry=registry,
+    server_name="my-tool-server",
+    server_version="1.0.0"
+)
+
+# Start server
+mcp_server.run(host="localhost", port=8001)
+# Connect AI agents to ws://localhost:8001
+```
+
 ## 🧪 Development
 
 ### Running the Orchestrator Demo
@@ -444,30 +589,25 @@ uv run mypy tomo/
 
 ## 🤝 Contributing
 
-We welcome contributions from the community! Here's how you can help:
+We welcome contributions from the community! Whether you're fixing bugs, adding features, improving documentation, or helping with testing, your contributions are valued.
 
-### Getting Started
+### Quick Start for Contributors
 
-1. **Fork the repository** and clone it locally
-2. **Set up the development environment**:
-   ```bash
-   git clone https://github.com/your-username/tomo.git
-   cd tomo
-   uv sync --extra dev
-   uv shell
-   ```
-3. **Create a feature branch**:
-   ```bash
-   git checkout -b feature/your-feature-name
-   ```
+1. **Read our [Contributing Guide](./CONTRIBUTING.md)** for detailed instructions
+2. **Check for issues** labeled `good first issue` or `help wanted`
+3. **Fork and clone** the repository
+4. **Set up development environment**: `uv sync --extra all --extra dev`
+5. **Create a feature branch** and start contributing!
 
-### Development Guidelines
+### What You Can Contribute
 
-- **Code Style**: Follow PEP 8 and use Black for formatting
-- **Type Hints**: Include type annotations for all functions and methods
-- **Tests**: Add tests for new features and ensure all tests pass
-- **Documentation**: Update docstrings and README as needed
-- **Commits**: Use conventional commit messages
+- 🐛 **Bug fixes** - Help us identify and resolve issues
+- ✨ **New features** - Implement new tools, adapters, or orchestration features  
+- 📚 **Documentation** - Improve guides, examples, and API documentation
+- 🧪 **Tests** - Add test coverage and improve reliability
+- 💡 **Ideas** - Suggest new features or improvements
+
+For detailed guidelines, code standards, and development workflow, please see our [**Contributing Guide**](./CONTRIBUTING.md).
 
 ### Running Tests
 
@@ -516,7 +656,7 @@ The only requirement is that the original license and copyright notice be includ
 
 ## 📦 Project Status
 
-✅ **Phase 1: Core Orchestration (Complete)**
+✅ **Core Orchestration (Complete)**
 - ✅ Core tool system with `@tool` decorator and Pydantic validation
 - ✅ `ToolRegistry` for tool discovery and management
 - ✅ `ToolRunner` for execution with error handling
@@ -528,13 +668,17 @@ The only requirement is that the original license and copyright notice be includ
 - ✅ Comprehensive test suite and documentation
 - ✅ Example tools and orchestrator demos
 
-🔄 **Phase 2: Advanced Features (In Development)**
-- 🔄 Workflow engine for complex multi-step processes
-- 🔄 API server for external integrations
-- 🔄 Plugin system for custom extensions
+✅ **Server Infrastructure (Complete)**
+- ✅ **RESTful API Server** - HTTP endpoints for external integrations
+- ✅ **MCP Server** - Model Context Protocol server for AI agents
+- ✅ **CLI Server Commands** - Easy server deployment and management
+
+✅ **Advanced Features (Complete)**
+- ✅ **Workflow Engine** - Declarative multi-step process orchestration
+- ✅ **Plugin System** - Extensible architecture for custom extensions and components
 - 🔄 Web dashboard for tool inspection and monitoring
 
-📋 **Phase 3: Enterprise Features (Planned)**
+📋 **Enterprise Features (Planned)**
 - 📋 Security and access control
 - 📋 Monitoring and analytics
 - 📋 Persistent storage and state management

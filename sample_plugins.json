@@ -1,0 +1,22 @@
+{
+  "plugins": [
+    {
+      "source": "tomo_web_scraping",
+      "enabled": false,
+      "config": {
+        "timeout": 30,
+        "user_agent": "Tomo/1.0"
+      }
+    },
+    {
+      "source": {
+        "directory": "./examples/plugins"
+      },
+      "enabled": true,
+      "config": {
+        "max_url_length": 2048,
+        "model_path": "./models/llama-model.gguf"
+      }
+    }
+  ]
+}

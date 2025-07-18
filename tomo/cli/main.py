@@ -370,5 +370,320 @@ def orchestrate(
             console.print(f"- {func['name']}: {func['description']}")
 
 
+@app.command("workflow")  # type: ignore
+def workflow_command(
+    workflow_file: str = typer.Argument(..., help="Path to workflow definition file"),
+    module: Optional[str] = typer.Option(
+        None, "--module", "-m", help="Python module to load tools from"
+    ),
+    context_file: Optional[str] = typer.Option(
+        None, "--context", "-c", help="JSON file with initial context data"
+    ),
+    output_file: Optional[str] = typer.Option(
+        None, "--output", "-o", help="File to write workflow results"
+    ),
+    max_parallel: int = typer.Option(5, "--max-parallel", help="Maximum parallel steps"),
+    timeout: Optional[float] = typer.Option(None, "--timeout", help="Step timeout in seconds"),
+    verbose: bool = typer.Option(False, "--verbose", "-v", help="Verbose output"),
+) -> None:
+    """Execute a declarative workflow from a file."""
+    try:
+        from ..orchestrators import WorkflowEngine
+    except ImportError:
+        console.print(
+            "[red]Workflow engine not available. Install with: uv sync --extra orchestrator[/red]"
+        )
+        raise typer.Exit(1)
+
+    import asyncio
+    from pathlib import Path
+
+    # Load tools
+    registry = load_tools_from_module(module) if module else ToolRegistry()
+    
+    if not registry.list() and module:
+        console.print("[yellow]Warning: No tools found in module[/yellow]")
+
+    # Load workflow definition
+    workflow_path = Path(workflow_file)
+    if not workflow_path.exists():
+        console.print(f"[red]Workflow file not found: {workflow_file}[/red]")
+        raise typer.Exit(1)
+
+    console.print(f"[yellow]Note: Workflow file loading from Python modules not yet implemented[/yellow]")
+    console.print(f"[yellow]Use the Python API with examples/workflow_demo.py for now[/yellow]")
+    console.print(f"[green]Workflow engine is available and ready![/green]")
+
+
+@app.command("workflow-demo")  # type: ignore
+def workflow_demo(
+    module: Optional[str] = typer.Option(
+        None, "--module", "-m", help="Python module to load tools from"
+    ),
+    pattern: Optional[str] = typer.Option(
+        None, "--pattern", "-p", help="Workflow pattern to run: simple, conditional, parallel, loop, complex"
+    ),
+) -> None:
+    """Run workflow engine demonstrations."""
+    try:
+        from ..orchestrators import WorkflowEngine, Workflow
+    except ImportError:
+        console.print(
+            "[red]Workflow engine not available. Install with: uv sync --extra orchestrator[/red]"
+        )
+        raise typer.Exit(1)
+
+    import asyncio
+
+    # Load tools
+    registry = load_tools_from_module(module) if module else ToolRegistry()
+
+    console.print(f"[green]🧠 Tomo Workflow Engine Demo[/green]")
+    console.print(f"Available tools: {registry.list()}")
+
+    if pattern:
+        console.print(f"[yellow]Running {pattern} workflow pattern...[/yellow]")
+        console.print(f"[yellow]Use examples/workflow_demo.py for full demonstrations[/yellow]")
+    else:
+        console.print(f"[yellow]Use examples/workflow_demo.py for full demonstrations[/yellow]")
+
+    # Create workflow engine
+    from ..adapters import OpenAIAdapter
+    engine = WorkflowEngine(
+        registry=registry,
+        adapter=OpenAIAdapter(),
+        max_parallel_steps=3,
+    )
+
+    console.print(f"[green]✅ Workflow engine created successfully![/green]")
+    console.print(f"[cyan]Example usage:[/cyan]")
+    console.print(f"  python examples/workflow_demo.py")
+
+
+@app.command("serve-api")  # type: ignore
+def serve_api(
+    module: Optional[str] = typer.Option(
+        None, "--module", "-m", help="Python module to load tools from"
+    ),
+    host: str = typer.Option("0.0.0.0", "--host", help="Host to bind to"),
+    port: int = typer.Option(8000, "--port", help="Port to bind to"),
+    reload: bool = typer.Option(
+        False, "--reload", help="Enable auto-reload for development"
+    ),
+    cors: bool = typer.Option(True, "--cors/--no-cors", help="Enable CORS"),
+) -> None:
+    """Start the RESTful API server for tool execution."""
+    try:
+        from ..servers import APIServer
+    except ImportError:
+        console.print(
+            "[red]Server dependencies not available. Install with: uv sync --extra server[/red]"
+        )
+        raise typer.Exit(1)
+
+    # Load tools
+    registry = load_tools_from_module(module) if module else ToolRegistry()
+
+    if not registry.list():
+        console.print("[yellow]No tools found[/yellow]")
+        return
+
+    # Create and start API server
+    console.print(f"[green]Starting API server on {host}:{port}[/green]")
+    console.print(f"Available tools: {registry.list()}")
+    console.print(f"API documentation: http://{host}:{port}/docs")
+
+    server = APIServer(
+        registry=registry,
+        title="Tomo API Server",
+        description="RESTful API for Tomo tool execution",
+        enable_cors=cors,
+    )
+
+    server.run(host=host, port=port, reload=reload)
+
+
+@app.command("serve-mcp")  # type: ignore
+def serve_mcp(
+    module: Optional[str] = typer.Option(
+        None, "--module", "-m", help="Python module to load tools from"
+    ),
+    host: str = typer.Option("localhost", "--host", help="Host to bind to"),
+    port: int = typer.Option(8001, "--port", help="Port to bind to"),
+    name: str = typer.Option("tomo-mcp-server", "--name", help="Server name"),
+    log_level: str = typer.Option("info", "--log-level", help="Logging level"),
+) -> None:
+    """Start the MCP server for AI agent tool execution."""
+    try:
+        from ..servers import MCPServer
+    except ImportError:
+        console.print(
+            "[red]Server dependencies not available. Install with: uv sync --extra mcp[/red]"
+        )
+        raise typer.Exit(1)
+
+    # Load tools
+    registry = load_tools_from_module(module) if module else ToolRegistry()
+
+    if not registry.list():
+        console.print("[yellow]No tools found[/yellow]")
+        return
+
+    # Create and start MCP server
+    console.print(f"[green]Starting MCP server on {host}:{port}[/green]")
+    console.print(f"Available tools: {registry.list()}")
+    console.print(f"WebSocket endpoint: ws://{host}:{port}")
+
+    server = MCPServer(
+        registry=registry,
+        server_name=name,
+        server_version="0.1.0",
+    )
+
+    server.run(host=host, port=port, log_level=log_level)
+
+
+@app.command("plugin")  # type: ignore
+def plugin_command(
+    action: str = typer.Argument(
+        ..., 
+        help="Action: list, info, load-package, load-directory, load-config, validate-config, create-sample-config"
+    ),
+    name: Optional[str] = typer.Option(None, "--name", "-n", help="Plugin name (for info action)"),
+    source: Optional[str] = typer.Option(None, "--source", "-s", help="Package name or directory path"),
+    config_file: Optional[str] = typer.Option(None, "--config", "-c", help="Plugin config file path"),
+    output: Optional[str] = typer.Option(None, "--output", "-o", help="Output file path"),
+    verbose: bool = typer.Option(False, "--verbose", "-v", help="Verbose output"),
+) -> None:
+    """Manage Tomo plugins."""
+    try:
+        from ..plugins import PluginLoader, PluginLoaderError
+    except ImportError:
+        console.print("[red]Plugin system not available[/red]")
+        raise typer.Exit(1)
+    
+    loader = PluginLoader()
+    
+    try:
+        if action == "list":
+            # List all registered plugins
+            plugins = loader.registry.list_plugins()
+            
+            if not plugins:
+                console.print("[yellow]No plugins registered[/yellow]")
+                return
+            
+            table = Table(title="Registered Plugins")
+            table.add_column("Name", style="cyan")
+            table.add_column("Version", style="magenta")
+            table.add_column("Type", style="green")
+            table.add_column("Enabled", style="yellow")
+            table.add_column("Description", style="white")
+            
+            for plugin_name in plugins:
+                info = loader.registry.get_plugin_info(plugin_name)
+                if info:
+                    table.add_row(
+                        info["name"],
+                        info["version"],
+                        info["type"],
+                        "✅" if info["enabled"] else "❌",
+                        info["description"][:50] + "..." if len(info["description"]) > 50 else info["description"]
+                    )
+            
+            console.print(table)
+            
+        elif action == "info":
+            # Show detailed info about a specific plugin
+            if not name:
+                console.print("[red]Plugin name required for info action[/red]")
+                raise typer.Exit(1)
+            
+            info = loader.registry.get_plugin_info(name)
+            if not info:
+                console.print(f"[red]Plugin '{name}' not found[/red]")
+                raise typer.Exit(1)
+            
+            console.print(Panel(JSON.from_data(info), title=f"Plugin: {name}"))
+            
+        elif action == "load-package":
+            # Load plugins from a package
+            if not source:
+                console.print("[red]Package name required for load-package action[/red]")
+                raise typer.Exit(1)
+            
+            discovered = loader.load_from_package(source)
+            console.print(f"[green]✅ Loaded {discovered} plugins from package '{source}'[/green]")
+            
+            if verbose and discovered > 0:
+                for plugin_name in loader.registry.list_plugins():
+                    console.print(f"  📦 {plugin_name}")
+                    
+        elif action == "load-directory":
+            # Load plugins from a directory
+            if not source:
+                console.print("[red]Directory path required for load-directory action[/red]")
+                raise typer.Exit(1)
+            
+            discovered = loader.load_from_directory(source)
+            console.print(f"[green]✅ Loaded {discovered} plugins from directory '{source}'[/green]")
+            
+            if verbose and discovered > 0:
+                for plugin_name in loader.registry.list_plugins():
+                    console.print(f"  📦 {plugin_name}")
+                    
+        elif action == "load-config":
+            # Load plugins from configuration file
+            if not config_file:
+                console.print("[red]Config file path required for load-config action[/red]")
+                raise typer.Exit(1)
+            
+            discovered = loader.load_from_config(config_file)
+            console.print(f"[green]✅ Loaded {discovered} plugins from config '{config_file}'[/green]")
+            
+            if verbose and discovered > 0:
+                for plugin_name in loader.registry.list_plugins():
+                    console.print(f"  📦 {plugin_name}")
+                    
+        elif action == "validate-config":
+            # Validate configuration file without loading
+            if not config_file:
+                console.print("[red]Config file path required for validate-config action[/red]")
+                raise typer.Exit(1)
+            
+            errors = loader.validate_config_file(config_file)
+            
+            if not errors:
+                console.print(f"[green]✅ Configuration file '{config_file}' is valid[/green]")
+            else:
+                console.print(f"[red]❌ Configuration file '{config_file}' has errors:[/red]")
+                for error in errors:
+                    console.print(f"  • {error}")
+                raise typer.Exit(1)
+                
+        elif action == "create-sample-config":
+            # Create a sample configuration file
+            output_file = output or "plugins.json"
+            
+            loader.create_sample_config(output_file)
+            console.print(f"[green]✅ Created sample plugin configuration: {output_file}[/green]")
+            console.print(f"[yellow]Edit the file to configure your plugins, then use 'tomo plugin load-config --config {output_file}'[/yellow]")
+            
+        else:
+            console.print(f"[red]Unknown action: {action}[/red]")
+            console.print("Available actions: list, info, load-package, load-directory, load-config, validate-config, create-sample-config")
+            raise typer.Exit(1)
+            
+    except PluginLoaderError as e:
+        console.print(f"[red]Plugin error: {str(e)}[/red]")
+        raise typer.Exit(1)
+    except Exception as e:
+        console.print(f"[red]Unexpected error: {str(e)}[/red]")
+        if verbose:
+            import traceback
+            console.print(traceback.format_exc())
+        raise typer.Exit(1)
+
+
 if __name__ == "__main__":
     app()

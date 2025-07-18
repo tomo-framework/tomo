@@ -1,0 +1,347 @@
+/**
+ * Next.js Example - Complete AI Chat App with Tomo Tools
+ * 
+ * This example shows a production-ready Next.js application that:
+ * 1. Connects to Tomo tools via MCP
+ * 2. Uses Vercel AI SDK for streaming
+ * 3. Provides a chat interface with tool calling
+ * 4. Handles errors and loading states
+ */
+
+'use client';
+
+import { useState, useEffect, useRef } from 'react';
+import { useChat } from 'ai/react';
+
+// Types for our tool integration
+interface TomoTool {
+  name: string;
+  description: string;
+  schema: any;
+}
+
+interface Message {
+  id: string;
+  role: 'user' | 'assistant' | 'tool';
+  content: string;
+  toolCall?: {
+    name: string;
+    inputs: any;
+    result: any;
+  };
+}
+
+export default function TomoChat() {
+  const [availableTools, setAvailableTools] = useState<TomoTool[]>([]);
+  const [isToolsLoading, setIsToolsLoading] = useState(true);
+  const [connectionStatus, setConnectionStatus] = useState<'connecting' | 'connected' | 'error'>('connecting');
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  // Initialize chat with tool support
+  const { messages, input, handleInputChange, handleSubmit, isLoading } = useChat({
+    api: '/api/chat',
+    onResponse: (response) => {
+      if (!response.ok) {
+        console.error('Chat API error:', response.statusText);
+      }
+    },
+    onError: (error) => {
+      console.error('Chat error:', error);
+    }
+  });
+
+  // Load available tools on component mount
+  useEffect(() => {
+    loadAvailableTools();
+  }, []);
+
+  // Auto-scroll to bottom of messages
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages]);
+
+  const loadAvailableTools = async () => {
+    try {
+      setIsToolsLoading(true);
+      setConnectionStatus('connecting');
+      
+      const response = await fetch('/api/tomo/tools');
+      if (!response.ok) {
+        throw new Error('Failed to load tools');
+      }
+      
+      const { tools } = await response.json();
+      setAvailableTools(tools);
+      setConnectionStatus('connected');
+    } catch (error) {
+      console.error('Failed to load tools:', error);
+      setConnectionStatus('error');
+    } finally {
+      setIsToolsLoading(false);
+    }
+  };
+
+  const retryConnection = () => {
+    loadAvailableTools();
+  };
+
+  const getConnectionStatusColor = () => {
+    switch (connectionStatus) {
+      case 'connected': return 'text-green-600';
+      case 'error': return 'text-red-600';
+      default: return 'text-yellow-600';
+    }
+  };
+
+  const getConnectionStatusText = () => {
+    switch (connectionStatus) {
+      case 'connected': return `Connected - ${availableTools.length} tools available`;
+      case 'error': return 'Connection failed';
+      default: return 'Connecting...';
+    }
+  };
+
+  return (
+    <div className="flex flex-col h-screen max-w-4xl mx-auto p-4">
+      {/* Header */}
+      <div className="mb-4 p-4 bg-white rounded-lg shadow-sm border">
+        <h1 className="text-2xl font-bold text-gray-800 mb-2">
+          Tomo AI Assistant
+        </h1>
+        <div className="flex items-center justify-between">
+          <div className={`text-sm ${getConnectionStatusColor()}`}>
+            <span className="inline-block w-2 h-2 rounded-full bg-current mr-2"></span>
+            {getConnectionStatusText()}
+          </div>
+          {connectionStatus === 'error' && (
+            <button
+              onClick={retryConnection}
+              className="px-3 py-1 text-sm bg-blue-500 text-white rounded hover:bg-blue-600"
+            >
+              Retry
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* Available Tools Panel */}
+      {isToolsLoading ? (
+        <div className="mb-4 p-4 bg-gray-50 rounded-lg">
+          <div className="animate-pulse">Loading available tools...</div>
+        </div>
+      ) : (
+        <div className="mb-4 p-4 bg-gray-50 rounded-lg">
+          <h3 className="font-semibold text-gray-700 mb-2">Available Tools:</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
+            {availableTools.map((tool) => (
+              <div key={tool.name} className="text-sm bg-white p-2 rounded border">
+                <div className="font-medium text-blue-600">{tool.name}</div>
+                <div className="text-gray-600 text-xs mt-1">{tool.description}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Chat Messages */}
+      <div className="flex-1 overflow-y-auto mb-4 p-4 bg-white rounded-lg shadow-sm border">
+        {messages.length === 0 ? (
+          <div className="text-center text-gray-500 mt-8">
+            <h3 className="text-lg font-medium mb-2">Welcome to Tomo AI Assistant!</h3>
+            <p className="mb-4">I can help you with various tasks using the available tools.</p>
+            <div className="text-sm text-gray-400">
+              Try asking me to:
+              <ul className="mt-2 space-y-1">
+                <li>• Calculate mathematical expressions</li>
+                <li>• Check weather for any city</li>
+                <li>• Process and transform text</li>
+                <li>• Generate number sequences</li>
+                <li>• Validate data formats</li>
+              </ul>
+            </div>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {messages.map((message) => (
+              <div
+                key={message.id}
+                className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
+              >
+                <div
+                  className={`max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${
+                    message.role === 'user'
+                      ? 'bg-blue-500 text-white'
+                      : message.role === 'tool'
+                      ? 'bg-green-100 text-green-800 border border-green-200'
+                      : 'bg-gray-100 text-gray-800'
+                  }`}
+                >
+                  {message.role === 'tool' ? (
+                    <div>
+                      <div className="font-medium text-xs uppercase tracking-wide mb-1">
+                        Tool Result
+                      </div>
+                      <pre className="text-sm whitespace-pre-wrap">{message.content}</pre>
+                    </div>
+                  ) : (
+                    <div className="whitespace-pre-wrap">{message.content}</div>
+                  )}
+                </div>
+              </div>
+            ))}
+            {isLoading && (
+              <div className="flex justify-start">
+                <div className="bg-gray-100 text-gray-800 px-4 py-2 rounded-lg">
+                  <div className="flex items-center space-x-2">
+                    <div className="animate-spin h-4 w-4 border-2 border-gray-400 border-t-transparent rounded-full"></div>
+                    <span>AI is thinking...</span>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+        <div ref={messagesEndRef} />
+      </div>
+
+      {/* Chat Input */}
+      <form onSubmit={handleSubmit} className="flex space-x-2">
+        <input
+          value={input}
+          onChange={handleInputChange}
+          placeholder={
+            connectionStatus === 'connected'
+              ? "Ask me to use any of the available tools..."
+              : "Please wait for tools to load..."
+          }
+          disabled={isLoading || connectionStatus !== 'connected'}
+          className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100"
+        />
+        <button
+          type="submit"
+          disabled={isLoading || connectionStatus !== 'connected' || !input.trim()}
+          className="px-6 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:bg-gray-400 disabled:cursor-not-allowed"
+        >
+          {isLoading ? 'Sending...' : 'Send'}
+        </button>
+      </form>
+
+      {/* Example Prompts */}
+      <div className="mt-4 text-sm text-gray-500">
+        <details className="cursor-pointer">
+          <summary className="font-medium">Example prompts to try:</summary>
+          <div className="mt-2 space-y-1 pl-4">
+            <div>• "Calculate 15 + 25 and then multiply by 3"</div>
+            <div>• "What's the weather like in Tokyo?"</div>
+            <div>• "Convert 'hello world' to uppercase"</div>
+            <div>• "Generate the first 10 fibonacci numbers"</div>
+            <div>• "Validate if 'test@example.com' is a valid email"</div>
+          </div>
+        </details>
+      </div>
+    </div>
+  );
+}
+
+// API Route helper functions (would go in separate files)
+export const apiHelpers = {
+  // This would be in pages/api/chat.ts or app/api/chat/route.ts
+  chatHandler: `
+// app/api/chat/route.ts
+import { StreamingTextResponse } from 'ai';
+import { TomoMCPClient } from '@/lib/tomo-mcp-client';
+import OpenAI from 'openai';
+
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY!,
+});
+
+const tomoClient = new TomoMCPClient(process.env.TOMO_MCP_URL);
+
+export async function POST(req: Request) {
+  const { messages } = await req.json();
+
+  // Connect to Tomo and get tool schemas
+  await tomoClient.connect();
+  const toolSchemas = await tomoClient.getToolSchemas();
+
+  // Call OpenAI with tool schemas
+  const response = await openai.chat.completions.create({
+    model: 'gpt-4',
+    messages,
+    tools: toolSchemas,
+    tool_choice: 'auto',
+    stream: true,
+  });
+
+  // Handle streaming response and tool calls
+  const stream = new ReadableStream({
+    async start(controller) {
+      for await (const chunk of response) {
+        const content = chunk.choices[0]?.delta?.content;
+        const toolCalls = chunk.choices[0]?.delta?.tool_calls;
+
+        if (content) {
+          controller.enqueue(new TextEncoder().encode(content));
+        }
+
+        if (toolCalls) {
+          for (const toolCall of toolCalls) {
+            if (toolCall.function) {
+              try {
+                const args = JSON.parse(toolCall.function.arguments);
+                const result = await tomoClient.executeTool(
+                  toolCall.function.name,
+                  args
+                );
+                
+                controller.enqueue(
+                  new TextEncoder().encode(
+                    \`\\nTool Result: \${JSON.stringify(result, null, 2)}\\n\`
+                  )
+                );
+              } catch (error) {
+                controller.enqueue(
+                  new TextEncoder().encode(
+                    \`\\nTool Error: \${error.message}\\n\`
+                  )
+                );
+              }
+            }
+          }
+        }
+      }
+      controller.close();
+      tomoClient.disconnect();
+    }
+  });
+
+  return new StreamingTextResponse(stream);
+}
+  `,
+
+  // This would be in pages/api/tomo/tools.ts or app/api/tomo/tools/route.ts
+  toolsHandler: `
+// app/api/tomo/tools/route.ts
+import { NextResponse } from 'next/server';
+import { TomoMCPClient } from '@/lib/tomo-mcp-client';
+
+const tomoClient = new TomoMCPClient(process.env.TOMO_MCP_URL);
+
+export async function GET() {
+  try {
+    await tomoClient.connect();
+    const tools = await tomoClient.listTools();
+    tomoClient.disconnect();
+    
+    return NextResponse.json({ tools });
+  } catch (error) {
+    console.error('Failed to load tools:', error);
+    return NextResponse.json(
+      { error: 'Failed to load tools' },
+      { status: 500 }
+    );
+  }
+}
+  `
+}; 

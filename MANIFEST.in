@@ -1,0 +1,31 @@
+# Include important project files
+include README.md
+include LICENSE
+include ADAPTERS.md
+include pyproject.toml
+
+# Include all Python files in the package
+recursive-include tomo *.py
+recursive-include tomo *.json
+
+# Exclude test files and development artifacts
+exclude tests/*
+exclude examples/*
+exclude docs/*
+exclude .coverage
+exclude .cursorrules
+exclude *.log
+
+# Exclude development directories
+prune .git
+prune .vscode
+prune .mypy_cache
+prune .pytest_cache
+prune __pycache__
+prune htmlcov
+prune .venv
+
+# Exclude build artifacts
+prune build
+prune dist
+prune *.egg-info 

@@ -1,0 +1,26 @@
+{
+  "name": "tomo-typescript-examples",
+  "version": "1.0.0",
+  "description": "TypeScript examples for Tomo integration",
+  "main": "index.js",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "dev": "ts-node index.ts",
+    "test": "npm run build && node dist/test.js"
+  },
+  "dependencies": {
+    "ws": "^8.14.2",
+    "ai": "^3.0.0",
+    "openai": "^4.20.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@types/ws": "^8.5.8",
+    "typescript": "^5.2.0",
+    "ts-node": "^10.9.0"
+  },
+  "keywords": ["tomo", "ai", "tools", "mcp", "typescript"],
+  "author": "Tomo Framework",
+  "license": "MIT"
+} 
